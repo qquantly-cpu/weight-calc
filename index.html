@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<script async src="https://telegram.org/js/telegram-web-app.js"></script>
+<title>Калькулятор нормы веса</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#12141a; --surface:#1b1e27; --surface2:#232733; --line:#2f3443;
+  --text:#e9ebf2; --muted:#8f96a8; --accent:#8ab4ff;
+  --under:#5aa9ff; --ok:#4fd1a5; --over:#f2b84b; --obese:#f0705f;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{color-scheme:dark;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Onest',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{position:relative;z-index:1;max-width:880px;margin:0 auto;padding:40px 20px 56px}
+.bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;--tone:var(--ok)}
+.bg::before{content:"";position:absolute;inset:-60px;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:60px 60px;-webkit-mask-image:radial-gradient(ellipse at 50% 40%,#000 25%,transparent 75%);mask-image:radial-gradient(ellipse at 50% 40%,#000 25%,transparent 75%);animation:grid 12s linear infinite}
+.orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.42;will-change:transform}
+.o1{width:46vmax;height:46vmax;left:-14vmax;top:-16vmax;background:#3d6df2;animation:d1 22s ease-in-out infinite alternate}
+.o2{width:38vmax;height:38vmax;right:-12vmax;top:18vh;background:#7a4fe0;animation:d2 28s ease-in-out infinite alternate}
+.o3{width:34vmax;height:34vmax;left:22vw;bottom:-18vmax;background:var(--tone);opacity:.3;transition:background .9s ease;animation:d3 25s ease-in-out infinite alternate}
+@keyframes d1{to{transform:translate(18vmax,12vmax) scale(1.15)}}
+@keyframes d2{to{transform:translate(-16vmax,10vmax) scale(.9)}}
+@keyframes d3{to{transform:translate(14vmax,-12vmax) scale(1.2)}}
+@keyframes grid{to{transform:translate(60px,60px)}}
+@media(prefers-reduced-motion:reduce){.orb,.bg::before{animation:none}}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.1;margin:0 0 8px;font-weight:700;letter-spacing:-.02em}
+.lead{color:var(--muted);margin:0 0 32px;max-width:52ch}
+.grid{display:grid;grid-template-columns:1fr 1.1fr;gap:20px;align-items:start}
+@media(max-width:720px){.grid{grid-template-columns:1fr}}
+.panel{background:rgba(27,30,39,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:16px;padding:24px}
+.field{margin-bottom:20px}
+.field:last-child{margin-bottom:0}
+label,.lbl{display:block;font-size:14px;color:var(--muted);margin-bottom:8px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{margin:0;text-align:center;padding:9px 6px;border-radius:7px;cursor:pointer;color:var(--muted);font-size:14px;transition:background .15s,color .15s}
+.seg input:checked+label{background:var(--surface2);color:var(--text)}
+.seg input:focus-visible+label{outline:2px solid var(--accent);outline-offset:1px}
+.num{display:flex;align-items:baseline;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:0 14px}
+.num:focus-within{border-color:var(--accent)}
+.num input{flex:1;min-width:0;background:none;border:0;color:var(--text);font:600 22px 'Onest',system-ui,sans-serif;padding:11px 0;outline:none;-moz-appearance:textfield}
+.num input::-webkit-outer-spin-button,.num input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.num span{color:var(--muted);font-size:14px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.result-main{margin-bottom:24px}
+.result-main .small{color:var(--muted);font-size:14px}
+.range{font-size:clamp(34px,7vw,48px);font-weight:700;letter-spacing:-.02em;line-height:1.15;margin:4px 0 0}
+.verdict{display:inline-block;margin-top:10px;padding:5px 12px;border-radius:99px;font-size:14px;font-weight:600;background:var(--surface2)}
+.scale{position:relative;margin:28px 0 8px}
+.bar{display:flex;height:10px;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%}
+.pin{position:absolute;top:-7px;width:4px;height:24px;margin-left:-2px;border-radius:2px;background:var(--text);box-shadow:0 0 0 3px var(--surface);transition:left .35s ease}
+.ticks{position:relative;height:18px;font-size:12px;color:var(--muted)}
+.ticks span{position:absolute;transform:translateX(-50%)}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:22px}
+.stat{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px}
+.stat b{display:block;font-size:22px;font-weight:700}
+.stat span{font-size:13px;color:var(--muted)}
+.formulas{margin-top:22px;border-top:1px solid var(--line);padding-top:18px}
+.formulas h2{font-size:15px;margin:0 0 10px;font-weight:600}
+.f{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;color:var(--muted);border-bottom:1px dashed var(--line)}
+.f:last-child{border-bottom:0}
+.f b{color:var(--text);font-weight:600}
+.advice{margin-top:18px;font-size:14px;color:var(--text);background:var(--bg);border-left:3px solid var(--accent);border-radius:6px;padding:12px 14px}
+.note{margin-top:24px;font-size:13px;color:var(--muted);max-width:70ch}
+.empty{color:var(--muted);padding:36px 0;text-align:center}
+html{-webkit-text-size-adjust:100%;overscroll-behavior:none}
+button,input,label{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.wrap{padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+@media(max-width:600px){
+  .wrap{padding-top:24px;padding-bottom:40px;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px))}
+  h1{font-size:28px}
+  .lead{font-size:15px;margin-bottom:20px}
+  .grid{gap:14px}
+  .panel{padding:18px 16px;border-radius:14px}
+  .field{margin-bottom:16px}
+  .seg label{padding:12px 2px;font-size:13px;min-height:44px;display:flex;align-items:center;justify-content:center}
+  .num input{font-size:20px;padding:12px 0;min-height:48px}
+  .row2{gap:10px}
+  .range{font-size:32px}
+  .stat{padding:12px}
+  .stat b{font-size:19px}
+  .f{font-size:13px;gap:12px}
+  .f b{white-space:nowrap}
+  .note{font-size:12px}
+  .orb{filter:blur(60px)}
+  .bg::before{background-size:44px 44px}
+}
+@media(max-width:360px){.seg label{font-size:12px}.range{font-size:28px}}
+.warn{opacity:0;max-height:0;overflow:hidden;margin:0;border-radius:10px;background:var(--surface2);border:1px solid var(--over);color:var(--text);font-size:14px;padding:0 14px;animation:warnin .01s 2.5s forwards}
+@keyframes warnin{to{opacity:1;max-height:200px;margin:0 0 16px;padding:12px 14px}}
+html.ok .warn{display:none}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+<div class="wrap">
+  <h1>Калькулятор нормы веса</h1>
+  <p class="lead">Введите рост и вес: покажем индекс массы тела, диапазон здорового веса и сколько до него осталось.</p>
+
+  <div class="warn" role="alert">Результат не пересчитывается? Закройте и откройте приложение заново.</div>
+  <div class="grid">
+    <section class="panel" aria-label="Ваши данные">
+      <div class="field">
+        <span class="lbl">Пол</span>
+        <div class="seg" role="radiogroup">
+          <input type="radio" name="sex" id="sm" value="m" checked><label for="sm">Мужской</label>
+          <input type="radio" name="sex" id="sf" value="f"><label for="sf">Женский</label>
+        </div>
+      </div>
+      <div class="field">
+        <label for="age">Возраст</label>
+        <div class="num"><input id="age" type="number" inputmode="numeric" min="18" max="100" value="30"><span>лет</span></div>
+      </div>
+      <div class="row2 field">
+        <div>
+          <label for="h">Рост</label>
+          <div class="num"><input id="h" type="number" inputmode="decimal" min="100" max="230" value="175"><span>см</span></div>
+        </div>
+        <div>
+          <label for="w">Вес</label>
+          <div class="num"><input id="w" type="number" inputmode="decimal" min="25" max="300" value="72"><span>кг</span></div>
+        </div>
+      </div>
+      <div class="field">
+        <span class="lbl">Телосложение</span>
+        <div class="seg" role="radiogroup">
+          <input type="radio" name="frame" id="fa" value="0.9"><label for="fa">Астеник</label>
+          <input type="radio" name="frame" id="fn" value="1" checked><label for="fn">Нормостеник</label>
+          <input type="radio" name="frame" id="fh" value="1.1"><label for="fh">Гиперстеник</label>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-live="polite" id="out"><div class="result-main"><div class="small">Нормальный вес при росте 175 см</div><div class="range">56,7 – 76,3 кг</div><span class="verdict" style="color:var(--ok)">Норма</span></div><div class="scale"><div class="bar"><i style="width:14%;background:var(--under)"></i><i style="width:26%;background:var(--ok)"></i><i style="width:20%;background:var(--over)"></i><i style="width:20%;background:var(--obese)"></i><i style="width:20%;background:var(--obese);opacity:.65"></i></div><div class="pin" style="left:34%"></div></div><div class="ticks"><span style="left:14%">18,5</span><span style="left:40%">25</span><span style="left:60%">30</span><span style="left:80%">35</span></div><div class="stats"><div class="stat"><b>23,5</b><span>Индекс массы тела</span></div><div class="stat"><b>72 кг</b><span>Ваш текущий вес</span></div></div><div class="advice">Ваш вес в пределах нормы. Поддерживайте режим питания и физическую активность.</div><div class="formulas"><h2>Идеальный вес по формулам</h2><div class="f"><span>Брока (с учётом телосложения)</span><b>67,5 кг</b></div><div class="f"><span>Девайн</span><b>70,5 кг</b></div><div class="f"><span>Лоренц</span><b>68,8 кг</b></div></div></section>
+  </div>
+
+  <p class="note">Расчёт ориентировочный и не заменяет консультацию врача. Индекс массы тела не учитывает долю мышц, поэтому у спортсменов и людей с большой мышечной массой может завышать оценку. Для детей, подростков, беременных и людей старше 65 лет нормы отличаются.</p>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){return document.getElementById(id)};
+  var out = $('out');
+  var MIN = 15, MAX = 40; // шкала ИМТ
+  var cats = [
+    {to:18.5,name:'Дефицит массы тела',color:'var(--under)'},
+    {to:25,name:'Норма',color:'var(--ok)'},
+    {to:30,name:'Избыточная масса',color:'var(--over)'},
+    {to:35,name:'Ожирение I степени',color:'var(--obese)'},
+    {to:40,name:'Ожирение II степени',color:'var(--obese)'},
+    {to:999,name:'Ожирение III степени',color:'var(--obese)'}
+  ];
+  function pct(b){return Math.max(0,Math.min(100,(b-MIN)/(MAX-MIN)*100))}
+  function fmt(n){return (Math.round(n*10)/10).toString().replace('.',',')}
+  function kg(n){return fmt(n)+' кг'}
+
+  function calc(){
+    try{ run(); document.documentElement.className='ok'; }catch(e){ out.innerHTML = '<div class="empty">Не удалось посчитать: '+(e && e.message ? e.message : e)+'</div>'; }
+  }
+  function run(){
+    var h = parseFloat($('h').value), w = parseFloat($('w').value), age = parseInt($('age').value,10);
+    var male = document.getElementById('sm').checked;
+    var frame = parseFloat(document.querySelector('input[name=frame]:checked').value);
+    if(!(h>=100 && h<=230) || !(w>=25 && w<=300)){
+      out.innerHTML = '<div class="empty">Укажите рост от 100 до 230 см и вес от 25 до 300 кг.</div>';
+      return;
+    }
+    var m = h/100, bmi = w/(m*m);
+    var cat = cats.filter(function(c){return bmi<c.to})[0];
+    document.querySelector('.bg').style.setProperty('--tone', cat.color);
+    var lo = 18.5*m*m, hi = 24.9*m*m;
+
+    // Формулы идеального веса
+    var broca = (h-100)*(male?0.9:0.85)*frame;
+    var inch = h/2.54;
+    var devine = (male?50:45.5) + 2.3*(inch-60);
+    var lorentz = (h-100) - (h-150)/(male?4:2);
+
+    var msg, adv;
+    if(w<lo){ msg = 'Не хватает около '+kg(lo-w)+' до нижней границы нормы.'; adv='Если вес снижается без причины, стоит обратиться к врачу.'; }
+    else if(w>hi){ msg = 'До верхней границы нормы — около '+kg(w-hi)+'.'; adv='Плавное снижение на 0,5–1 кг в неделю считается безопасным темпом.'; }
+    else { msg = 'Ваш вес в пределах нормы.'; adv='Поддерживайте режим питания и физическую активность.'; }
+    var ageNote = (age<18) ? '<div class="advice">Для возраста младше 18 лет оценка по ИМТ неприменима: используйте детские перцентильные таблицы.</div>' : '<div class="advice">'+msg+' '+adv+'</div>';
+
+    var bar = '';
+    var prev = MIN;
+    [18.5,25,30,35,MAX].forEach(function(t,i){
+      var colors=['var(--under)','var(--ok)','var(--over)','var(--obese)','var(--obese)'];
+      bar += '<i style="width:'+((t-prev)/(MAX-MIN)*100)+'%;background:'+colors[i]+(i==4?';opacity:.65':'')+'"></i>';
+      prev = t;
+    });
+    var ticks = [18.5,25,30,35].map(function(t){return '<span style="left:'+pct(t)+'%">'+fmt(t)+'</span>'}).join('');
+
+    out.innerHTML =
+      '<div class="result-main">' +
+        '<div class="small">Нормальный вес при росте '+fmt(h)+' см</div>' +
+        '<div class="range">'+fmt(lo)+' – '+fmt(hi)+' кг</div>' +
+        '<span class="verdict" style="color:'+cat.color+'">'+cat.name+'</span>' +
+      '</div>' +
+      '<div class="scale"><div class="bar">'+bar+'</div><div class="pin" style="left:'+pct(bmi)+'%"></div></div>' +
+      '<div class="ticks">'+ticks+'</div>' +
+      '<div class="stats">' +
+        '<div class="stat"><b>'+fmt(bmi)+'</b><span>Индекс массы тела</span></div>' +
+        '<div class="stat"><b>'+kg(w)+'</b><span>Ваш текущий вес</span></div>' +
+      '</div>' + ageNote +
+      '<div class="formulas"><h2>Идеальный вес по формулам</h2>' +
+        '<div class="f"><span>Брока (с учётом телосложения)</span><b>'+kg(broca)+'</b></div>' +
+        '<div class="f"><span>Девайн</span><b>'+kg(devine)+'</b></div>' +
+        '<div class="f"><span>Лоренц</span><b>'+kg(lorentz)+'</b></div>' +
+      '</div>';
+  }
+  ['h','w','age'].forEach(function(id){$(id).addEventListener('input',calc)});
+  document.querySelectorAll('input[type=radio]').forEach(function(r){r.addEventListener('change',calc)});
+  function tgInit(){
+    try{
+      var tg = window.Telegram && window.Telegram.WebApp;
+      if(!tg || tgInit.done) return;
+      tgInit.done = true;
+      tg.ready();
+      tg.expand();
+      if(tg.setHeaderColor) tg.setHeaderColor('#12141a');
+      if(tg.setBackgroundColor) tg.setBackgroundColor('#12141a');
+      var tick = function(){ try{ tg.HapticFeedback.selectionChanged(); }catch(e){} };
+      document.querySelectorAll('input[type=radio]').forEach(function(r){r.addEventListener('change',tick)});
+    }catch(e){}
+  }
+  calc();
+  tgInit();
+  window.addEventListener('load',function(){ calc(); tgInit(); });
+})();
+</script>
+</body>
+</html>
